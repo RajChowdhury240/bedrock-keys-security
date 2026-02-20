@@ -890,8 +890,7 @@ class PhantomUserHunter:
 
         # Build output
         output = []
-        output.append(f"\n{Colors.BOLD}AWS Bedrock Phantom User Hunter v1.0{Colors.RESET}")
-        output.append(f"Scanning Account: {Colors.CYAN}{self.account_id}{Colors.RESET}")
+        output.append(f"\nScanning Account: {Colors.CYAN}{self.account_id}{Colors.RESET}")
         output.append(f"Region: {self.region}\n")
 
         # Table
@@ -918,6 +917,7 @@ class PhantomUserHunter:
         if orphaned > 0:
             output.append(f"\n{Colors.YELLOW}ℹ️  {orphaned} orphaned phantom users can be cleaned up.{Colors.RESET}")
             output.append(f"{Colors.YELLOW}These users have no active credentials and can be safely deleted.{Colors.RESET}")
+            output.append(f"{Colors.YELLOW}Run: ./bedrock-keys --cleanup --dry-run  to preview, or --cleanup to delete.{Colors.RESET}")
             output.append("")
 
         return '\n'.join(output)
