@@ -110,7 +110,6 @@ What it does:
 
 Example output:
 ```
-AWS Bedrock Phantom User Hunter v1.0
 Scanning Account: 886000970552
 
 ┌──────────────────────┬───────────┬─────────────┬─────────────┬────────────┐
