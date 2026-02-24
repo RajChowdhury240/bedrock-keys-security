@@ -7,7 +7,7 @@ Tools and research for securing AWS Bedrock API keys and the phantom IAM users t
 
 ## tl;dr
 
-AWS Bedrock API keys create phantom IAM users with scary permissions that never go away. I found them leaking everywhere. This repo has tools to find them, kill them, and prevent them.
+AWS Bedrock API keys (launched July 2025) introduce multiple security risks: overprivileged default policies, bearer token auth, and keys already leaking to GitHub within 14 days of launch. Long-term keys additionally create phantom IAM users (`BedrockAPIKey-xxxx`) with admin permissions that persist indefinitely. Criminal orgs make $1M/year from stolen keys, with fraudulent charges up to $14K/day per region. This repo covers detection, preventive SCPs, incident response, and key decoding for all Bedrock API key types.
 
 ## What's Here
 
@@ -29,12 +29,10 @@ AWS Bedrock API keys create phantom IAM users with scary permissions that never 
 Here's what happens when you click "Create API Key" in the Bedrock console:
 
 1. AWS silently creates an IAM user named `BedrockAPIKey-xxxx`
-2. That user gets the `AmazonBedrockLimitedAccess` policy (lol at "Limited" - it's `bedrock:*` plus recon)
+2. That user gets the `AmazonBedrockLimitedAccess` policy (it's `bedrock:*` plus recon)
 3. **The phantom user never gets deleted** - not when the key expires, not when you delete it
 4. Attackers can create IAM access keys on these phantoms for privilege escalation
 5. Leaked keys are worth ~$1M/year to criminal groups running LLMjacking operations
-
-I built this after finding these things leaked all over GitHub.
 
 ## What Attackers Do With These
 
@@ -50,7 +48,6 @@ I built this after finding these things leaked all over GitHub.
 ### Two Attack Paths I See
 
 ![Attack Paths Diagram](docs/images/attack-paths.jpeg)
-*Image: Visual representation of LLMjacking and Privilege Escalation attack paths*
 
 **1. LLMjacking (up to $14K/day per region)**
 
@@ -109,23 +106,22 @@ What it does:
 - Export for tracking/reporting
 
 Example output:
-```
-Scanning Account: 886000970552
 
-┌──────────────────────┬───────────┬─────────────┬─────────────┬────────────┐
-│ Username             │ Created   │ Active Keys │ Access Keys │ Status     │
-├──────────────────────┼───────────┼─────────────┼─────────────┼────────────┤
-│ BedrockAPIKey-bzbk   │ 2026-02-04│ 1           │ 0           │ ACTIVE     │
-│ BedrockAPIKey-826f   │ 2025-12-10│ 0           │ 0           │ ORPHANED   │
-│ BedrockAPIKey-Og3f   │ 2025-11-15│ 0           │ 2           │ ESCALATED! │
-└──────────────────────┴───────────┴─────────────┴─────────────┴────────────┘
+![Scan Example](docs/images/scan-example.png)
 
-Summary:
-  Total phantom users: 31
-  Active: 3
-  Orphaned: 26 (safe to cleanup)
-  Escalated: 2 (HIGH RISK - IAM access keys!)
+### Incident Response
+
+Emergency response when keys are compromised.
+
+```bash
+./bedrock-keys --revoke-key BedrockAPIKey-xxxx              # Emergency key revocation
+./bedrock-keys --timeline BedrockAPIKey-xxxx                # CloudTrail timeline (last 7 days)
+./bedrock-keys --timeline BedrockAPIKey-xxxx --days 30      # Timeline for last 30 days
+./bedrock-keys --report BedrockAPIKey-xxxx                  # Generate incident report
+./bedrock-keys --report BedrockAPIKey-xxxx --output report.txt  # Save report to file
 ```
+
+![Revoke Key](docs/images/revoke-key.png)
 
 ### Key Decoding
 
@@ -136,12 +132,11 @@ Decode leaked keys offline (no AWS creds needed).
 ./bedrock-keys --decode-key "bedrock-api-key-YmVkcm9ja..." --json
 ```
 
-Pulls out:
-- IAM username
-- AWS account ID
-- Key format details
-
 Useful when you find these keys in GitHub/Pastebin/wherever and need to know whose account is compromised.
+
+![Long-term Key Decode](docs/images/long-term-key.png)
+
+![Short-term Key Decode](docs/images/short-term-key.png)
 
 ## Better Alternative: Don't Use API Keys
 
@@ -231,8 +226,6 @@ This one's important - it blocks the privilege escalation path.
 
 ## The Research
 
-I spent months looking at Bedrock API keys after noticing them in GitHub. Turns out they're worse than I thought.
-
 **What I found:**
 - Phantom IAM users never get cleaned up
 - "AmazonBedrockLimitedAccess" is basically `bedrock:*` plus recon permissions
@@ -240,8 +233,8 @@ I spent months looking at Bedrock API keys after noticing them in GitHub. Turns 
 - Criminal groups make $1M+/year running LLMjacking operations with leaked keys
 - AWS doesn't detect when phantom users get abused
 
-**Where to read more:**
-- Blog: [BeyondTrust - AWS Bedrock API Keys Security Research](https://beyondtrust.com/blog/bedrock-api-keys-security)
+<!-- **Where to read more:**
+- Blog: [BeyondTrust - AWS Bedrock API Keys Security Research](https://beyondtrust.com/blog/bedrock-api-keys-security) -->
 
 ## Contributing
 
