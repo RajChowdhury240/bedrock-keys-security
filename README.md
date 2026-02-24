@@ -7,7 +7,7 @@ Tools and research for securing AWS Bedrock API keys and the phantom IAM users t
 
 ## tl;dr
 
-AWS Bedrock API keys (launched July 2025) introduce multiple security risks: overprivileged default policies, bearer token auth, and keys already leaking to GitHub within 14 days of launch. Long-term keys additionally create phantom IAM users (`BedrockAPIKey-xxxx`) with admin permissions that persist indefinitely. Criminal orgs make $1M/year from stolen keys, with fraudulent charges up to $14K/day per region. This repo covers detection, preventive SCPs, incident response, and key decoding for all Bedrock API key types.
+AWS Bedrock API keys ([launched July 2025](https://aws.amazon.com/blogs/machine-learning/accelerate-ai-development-with-amazon-bedrock-api-keys/)) introduce multiple security risks: overprivileged default policies, bearer token auth, and keys already leaking to GitHub within 14 days of launch. Long-term keys additionally create phantom IAM users (`BedrockAPIKey-xxxx`) with admin permissions that persist indefinitely. Criminal orgs make $1M/year from stolen keys, with fraudulent charges up to $14K/day per region. This repo covers detection, preventive SCPs, incident response, and key decoding for all Bedrock API key types.
 
 ## What's Here
 
