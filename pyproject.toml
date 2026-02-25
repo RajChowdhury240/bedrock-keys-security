@@ -10,9 +10,9 @@ readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [
-    { name = "BeyondTrust, Phantom Labs" },
+    { name = "Sergio Garcia (MrCloudSec)", email = "hello@mistercloudsec.com" },
 ]
-keywords = ["aws", "bedrock", "security", "iam", "api-keys", "incident-response"]
+keywords = ["aws", "bedrock", "security", "iam", "api-keys", "incident-response", "ai"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
