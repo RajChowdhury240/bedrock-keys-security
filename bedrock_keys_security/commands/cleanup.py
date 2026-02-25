@@ -3,6 +3,8 @@
 import sys
 import click
 
+from bedrock_keys_security.utils import output
+
 
 @click.command()
 @click.option('--dry-run', is_flag=True, help='Simulate cleanup without deleting')
@@ -13,9 +15,14 @@ def cleanup(ctx, dry_run, force, output_json):
     """Delete orphaned phantom users"""
     scanner = ctx.obj.scanner
 
-    phantoms = scanner.find_phantom_users()
-
     if not output_json:
+        click.echo(scanner.report_header())
+
+    if output_json:
+        phantoms = scanner.find_phantom_users()
+    else:
+        with output.spinner():
+            phantoms = scanner.find_phantom_users()
         click.echo(scanner.generate_table_report(phantoms))
 
     stats = scanner.cleanup_orphaned_users(phantoms, dry_run=dry_run, force=force)

@@ -1,6 +1,10 @@
 """Click-based output helpers replacing the Colors class"""
 
+import sys
+import threading
+import time
 import click
+from contextlib import contextmanager
 from typing import Dict
 
 
@@ -44,9 +48,35 @@ def cyan(text: str) -> str:
     return click.style(text, fg="cyan")
 
 
+@contextmanager
+def spinner(label="Scanning"):
+    """Simple threaded spinner for indeterminate progress"""
+    frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    stop = threading.Event()
+
+    def spin():
+        i = 0
+        while not stop.is_set():
+            frame = click.style(frames[i % len(frames)], fg="cyan")
+            sys.stderr.write(f"\r{frame} {label}")
+            sys.stderr.flush()
+            i += 1
+            stop.wait(0.08)
+        sys.stderr.write("\r" + " " * (len(label) + 3) + "\r")
+        sys.stderr.flush()
+
+    t = threading.Thread(target=spin, daemon=True)
+    t.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        t.join()
+
+
 def style_status(status: str) -> str:
-    if status == "ESCALATED":
-        return click.style(f"{status}!", fg="red")
+    if status == "AT RISK":
+        return click.style(status, fg="red")
     elif status == "ACTIVE":
         return click.style(status, fg="green")
     else:

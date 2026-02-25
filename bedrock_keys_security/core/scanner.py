@@ -111,8 +111,8 @@ class PhantomUserScanner:
             access_keys = response.get('AccessKeyMetadata', [])
             active_keys = [k for k in access_keys if k['Status'] == 'Active']
 
-            if active_keys:
-                output.high_risk(f"{username}: {len(active_keys)} IAM access key(s) found! (ESCALATION)")
+            if active_keys and self.verbose:
+                output.high_risk(f"{username}: {len(active_keys)} IAM access key(s) found (AT RISK)")
 
             return {
                 'access_keys': len(access_keys),
@@ -157,12 +157,12 @@ class PhantomUserScanner:
             }
 
     def categorize_status(self, user_data: Dict) -> str:
-        """Categorize user status: ACTIVE, ORPHANED, or ESCALATED"""
+        """Categorize user status: ACTIVE, ORPHANED, or AT RISK"""
         has_active_bedrock = user_data.get('active_bedrock_credentials', 0) > 0
         has_access_keys = user_data.get('active_access_keys', 0) > 0
 
         if has_access_keys:
-            return 'ESCALATED'
+            return 'AT RISK'
         elif has_active_bedrock:
             return 'ACTIVE'
         else:
@@ -255,8 +255,8 @@ class PhantomUserScanner:
 
         click.echo()
 
-        # Safety check: Never delete ACTIVE or ESCALATED users
-        unsafe_users = [u for u in phantoms if u['status'] in ['ACTIVE', 'ESCALATED']]
+        # Safety check: Never delete ACTIVE or AT RISK users
+        unsafe_users = [u for u in phantoms if u['status'] in ['ACTIVE', 'AT RISK']]
         if unsafe_users and not force:
             click.echo(output.red(f"[WARNING] Found {len(unsafe_users)} users with active credentials."))
             click.echo(output.red("These will NOT be deleted for safety:"))
@@ -496,6 +496,27 @@ class PhantomUserScanner:
 
         return report_content
 
+    def report_header(self) -> str:
+        """Generate report header with context for first-time users"""
+        lines = []
+        lines.append(f"\n{output.bold('─' * 60)}")
+        lines.append(f"{output.bold(output.cyan('  bks — Bedrock Keys Security'))}")
+        lines.append(f"{output.bold('─' * 60)}")
+        lines.append("")
+        lines.append("  AWS Bedrock API keys silently create IAM users")
+        lines.append("  (BedrockAPIKey-*) with broad permissions that persist")
+        lines.append("  indefinitely — even after the API key is deleted or expired.")
+        lines.append("")
+        lines.append("  These 'phantom users' are never automatically cleaned")
+        lines.append("  up, creating an expanding attack surface.")
+        lines.append("")
+        lines.append(f"  Docs: {output.cyan('https://github.com/BeyondTrust/bedrock-keys-security')}")
+        lines.append(f"{output.bold('─' * 60)}")
+        lines.append("")
+        lines.append(f"Account: {output.cyan(self.account_id)}")
+        lines.append(f"Region:  {self.region}")
+        return '\n'.join(lines)
+
     def generate_table_report(self, phantoms: List[Dict]) -> str:
         """Generate formatted table report"""
         if not phantoms:
@@ -515,11 +536,9 @@ class PhantomUserScanner:
         total = len(phantoms)
         active = len([u for u in phantoms if u['status'] == 'ACTIVE'])
         orphaned = len([u for u in phantoms if u['status'] == 'ORPHANED'])
-        escalated = len([u for u in phantoms if u['status'] == 'ESCALATED'])
+        at_risk = len([u for u in phantoms if u['status'] == 'AT RISK'])
 
         lines = []
-        lines.append(f"\nScanning Account: {output.cyan(self.account_id)}")
-        lines.append(f"Region: {self.region}\n")
 
         headers = ['Username', 'Created', 'Active API Keys', 'Access Keys', 'Status']
         lines.append(tabulate(table_data, headers=headers, tablefmt='grid'))
@@ -528,21 +547,22 @@ class PhantomUserScanner:
         lines.append(f"  Total phantom users: {output.cyan(str(total))}")
         lines.append(f"  Active: {output.green(str(active))}")
         lines.append(f"  Orphaned: {output.yellow(str(orphaned))} (safe to cleanup)")
-        lines.append(f"  Escalated: {output.red(str(escalated))} (HIGH RISK - IAM access keys!)")
+        lines.append(f"  At Risk: {output.red(str(at_risk))} (IAM access keys found)")
 
-        if escalated > 0:
-            lines.append(f"\n{click.style('\u26a0\ufe0f  CRITICAL: ESCALATED users found!', fg='red', bold=True)}")
-            lines.append(output.red("These phantom users have IAM access keys created on them."))
-            lines.append(output.red("This indicates privilege escalation. Investigate immediately:"))
+        if at_risk > 0:
+            lines.append(f"\n{click.style('AT RISK users detected:', fg='red', bold=True)}")
+            lines.append(output.red("These phantom users have IAM access keys (AKIA...) attached."))
+            lines.append(output.red("These keys grant bedrock:*, iam:ListRoles, kms:DescribeKey,"))
+            lines.append(output.red("ec2:Describe* and persist even if the API key is revoked. Investigate:"))
             for user in phantoms:
-                if user['status'] == 'ESCALATED':
+                if user['status'] == 'AT RISK':
                     lines.append(output.red(f"    - {user['username']} ({user['active_access_keys']} access keys)"))
             lines.append("")
 
         if orphaned > 0:
             lines.append(f"\n{output.yellow(f'{orphaned} orphaned phantom users can be cleaned up.')}")
-            lines.append(output.yellow("These users have no active credentials and can be safely deleted."))
-            lines.append(output.yellow("Run: bedrock-keys-security cleanup --dry-run  to preview, or cleanup to delete."))
+            lines.append(output.yellow("These users have no active credentials and can be safely deleted to reduce your attack surface."))
+            lines.append(output.yellow("Run: bks cleanup --dry-run  to preview, or cleanup to delete."))
             lines.append("")
 
         return '\n'.join(lines)
@@ -568,7 +588,7 @@ class PhantomUserScanner:
                 'total': len(phantoms),
                 'active': len([u for u in phantoms if u['status'] == 'ACTIVE']),
                 'orphaned': len([u for u in phantoms if u['status'] == 'ORPHANED']),
-                'escalated': len([u for u in phantoms if u['status'] == 'ESCALATED'])
+                'at_risk': len([u for u in phantoms if u['status'] == 'AT RISK'])
             },
             'phantom_users': phantoms
         }

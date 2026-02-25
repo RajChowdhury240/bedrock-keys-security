@@ -24,7 +24,7 @@ pip install -e .
 
 1. Fork the repo and create a feature branch
 2. Test your changes (SCPs on non-prod OUs first)
-3. Make sure `bedrock-keys-security` still runs clean
+3. Make sure `bks` still runs clean
 4. No sensitive data in commits (keys, secrets, account IDs)
 5. One PR per issue/feature
 
@@ -32,7 +32,7 @@ pip install -e .
 
 ```
 feat: Add Terraform module for SCP deployment
-fix: Handle missing access keys in bedrock-keys-security
+fix: Handle missing access keys in bks scan
 docs: Update SCP deployment instructions
 ```
 
@@ -48,10 +48,10 @@ There is no automated test suite. Test manually before submitting:
 
 ```bash
 # Test the tool runs without errors
-bedrock-keys-security scan
-bedrock-keys-security scan --json
-bedrock-keys-security scan --verbose
-bedrock-keys-security decode-key "ABSKQmVkcm9ja0FQSUtleS..." # test with a sample key
+bks scan
+bks scan --json
+bks scan --verbose
+bks decode-key "ABSKQmVkcm9ja0FQSUtleS..." # test with a sample key
 
 # Test SCPs on non-prod OUs first - never deploy directly to production
 ```

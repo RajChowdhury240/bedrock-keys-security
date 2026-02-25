@@ -1,4 +1,4 @@
-"""Click CLI entry point for bedrock-keys-security"""
+"""Click CLI entry point for bks (Bedrock Keys Security)"""
 
 import click
 from typing import Optional
@@ -26,11 +26,14 @@ class Context:
         return self._scanner
 
 
-@click.group(invoke_without_command=True)
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+
+
+@click.group(invoke_without_command=True, context_settings=CONTEXT_SETTINGS)
 @click.option('--profile', default=None, help='AWS profile name')
 @click.option('--region', default='us-east-1', help='AWS region (default: us-east-1)')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
-@click.version_option(__version__, prog_name='bedrock-keys-security')
+@click.version_option(__version__, prog_name='bks')
 @click.pass_context
 def cli(ctx, profile, region, verbose):
     """Bedrock API Keys Security Toolkit - Discovery, cleanup, incident response, and key decoding"""

@@ -54,7 +54,7 @@ cd bedrock-keys-security
 pip install .
 ```
 
-After installation, the `bedrock-keys-security` command is available globally. Requires Python 3.10+ and AWS credentials. Minimum permissions by command:
+After installation, the `bks` command is available globally. Requires Python 3.10+ and AWS credentials. Minimum permissions by command:
 
 | Command | IAM Permissions Required |
 |---|---|
@@ -72,17 +72,17 @@ After installation, the `bedrock-keys-security` command is available globally. R
 Run a scan to discover all phantom IAM users in your account:
 
 ```bash
-bedrock-keys-security scan                      # scan with default profile
-bedrock-keys-security scan --profile prod       # use a specific AWS profile
-bedrock-keys-security scan --json               # machine-readable output
-bedrock-keys-security scan --csv output.csv     # export to CSV
-bedrock-keys-security scan --verbose            # detailed output
+bks scan                      # scan with default profile
+bks scan --profile prod       # use a specific AWS profile
+bks scan --json               # machine-readable output
+bks scan --csv output.csv     # export to CSV
+bks scan --verbose            # detailed output
 ```
 
 Each phantom user is categorized by risk level:
 - **ACTIVE** — Has valid Bedrock API credentials
 - **ORPHANED** — No active credentials remaining (safe to delete)
-- **ESCALATED** — Has IAM access keys, indicating privilege escalation
+- **AT RISK** — Has IAM access keys that grant `bedrock:*`, recon permissions, and persist independently of the API key
 
 ![Scan Example](docs/images/scan-example.png)
 
@@ -91,23 +91,23 @@ Each phantom user is categorized by risk level:
 Remove orphaned phantom users that no longer have active credentials:
 
 ```bash
-bedrock-keys-security cleanup --dry-run         # preview what would be deleted
-bedrock-keys-security cleanup                   # delete with confirmation prompt
-bedrock-keys-security cleanup --force           # skip confirmation (use with caution)
+bks cleanup --dry-run         # preview what would be deleted
+bks cleanup                   # delete with confirmation prompt
+bks cleanup --force           # skip confirmation (use with caution)
 ```
 
-Only ORPHANED users are affected. ACTIVE and ESCALATED users are never deleted automatically.
+Only ORPHANED users are affected. ACTIVE and AT RISK users are never deleted automatically.
 
 ### Incident Response
 
-When a key is compromised, `bedrock-keys-security` provides emergency response capabilities:
+When a key is compromised, `bks` provides emergency response capabilities:
 
 ```bash
-bedrock-keys-security revoke-key BedrockAPIKey-xxxx              # emergency key revocation
-bedrock-keys-security timeline BedrockAPIKey-xxxx                # CloudTrail timeline (last 7 days)
-bedrock-keys-security timeline BedrockAPIKey-xxxx --days 30      # extended timeline
-bedrock-keys-security report BedrockAPIKey-xxxx                  # full incident report
-bedrock-keys-security report BedrockAPIKey-xxxx --output report.txt
+bks revoke-key BedrockAPIKey-xxxx              # emergency key revocation
+bks timeline BedrockAPIKey-xxxx                # CloudTrail timeline (last 7 days)
+bks timeline BedrockAPIKey-xxxx --days 30      # extended timeline
+bks report BedrockAPIKey-xxxx                  # full incident report
+bks report BedrockAPIKey-xxxx --output report.txt
 ```
 
 The `revoke-key` command applies an inline deny policy and deletes all Bedrock credentials in a single operation.
@@ -119,8 +119,8 @@ The `revoke-key` command applies an inline deny policy and deletes all Bedrock c
 Decode leaked Bedrock API keys offline — no AWS credentials required:
 
 ```bash
-bedrock-keys-security decode-key "ABSKQmVkcm9ja0FQSUtleS..."
-bedrock-keys-security decode-key "bedrock-api-key-YmVkcm9ja..." --json
+bks decode-key "ABSKQmVkcm9ja0FQSUtleS..."
+bks decode-key "bedrock-api-key-YmVkcm9ja..." --json
 ```
 
 Extracts the embedded IAM username, AWS account ID, region, and key format. Useful for triaging keys found on GitHub, Pastebin, or other public sources.

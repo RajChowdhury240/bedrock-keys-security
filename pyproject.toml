@@ -36,7 +36,7 @@ Issues = "https://github.com/BeyondTrust/bedrock-keys-security/issues"
 Discussions = "https://github.com/BeyondTrust/bedrock-keys-security/discussions"
 
 [project.scripts]
-bedrock-keys-security = "bedrock_keys_security.cli:cli"
+bks = "bedrock_keys_security.cli:cli"
 
 [tool.setuptools.packages.find]
 include = ["bedrock_keys_security*"]
