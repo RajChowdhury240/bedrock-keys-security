@@ -9,6 +9,7 @@ from typing import Dict
 _spinner_lock = threading.Lock()
 _spinner_active = False
 _spinner_label_len = 0
+_spinner_label = ""
 
 
 def _clear_spinner_line():
@@ -18,34 +19,47 @@ def _clear_spinner_line():
         sys.stderr.flush()
 
 
+def _redraw_spinner():
+    """Redraw the spinner line on stderr after log output"""
+    if _spinner_active:
+        frame = click.style("\u280b", fg="cyan")
+        sys.stderr.write(f"\r{frame} {_spinner_label}")
+        sys.stderr.flush()
+
+
 def info(msg: str) -> None:
     with _spinner_lock:
         _clear_spinner_line()
         click.echo(click.style(f"[INFO] {msg}", fg="cyan"))
+        _redraw_spinner()
 
 
 def success(msg: str) -> None:
     with _spinner_lock:
         _clear_spinner_line()
         click.echo(click.style(f"[SUCCESS] {msg}", fg="green"))
+        _redraw_spinner()
 
 
 def warning(msg: str) -> None:
     with _spinner_lock:
         _clear_spinner_line()
         click.echo(click.style(f"[WARNING] {msg}", fg="yellow"))
+        _redraw_spinner()
 
 
 def error(msg: str) -> None:
     with _spinner_lock:
         _clear_spinner_line()
         click.echo(click.style(f"[ERROR] {msg}", fg="red"), err=True)
+        _redraw_spinner()
 
 
 def high_risk(msg: str) -> None:
     with _spinner_lock:
         _clear_spinner_line()
         click.echo(click.style(f"[HIGH RISK] {msg}", fg="red"))
+        _redraw_spinner()
 
 
 def bold(text: str) -> str:
@@ -71,7 +85,7 @@ def cyan(text: str) -> str:
 @contextmanager
 def spinner(label="Scanning"):
     """Simple threaded spinner for indeterminate progress"""
-    global _spinner_active, _spinner_label_len
+    global _spinner_active, _spinner_label_len, _spinner_label
     frames = ["\u280b", "\u2819", "\u2839", "\u2838", "\u283c", "\u2834", "\u2826", "\u2827", "\u2807", "\u280f"]
     stop = threading.Event()
 
@@ -88,8 +102,10 @@ def spinner(label="Scanning"):
         sys.stderr.write("\r" + " " * (len(label) + 3) + "\r")
         sys.stderr.flush()
 
-    _spinner_active = True
-    _spinner_label_len = len(label)
+    with _spinner_lock:
+        _spinner_active = True
+        _spinner_label_len = len(label)
+        _spinner_label = label
     t = threading.Thread(target=spin, daemon=True)
     t.start()
     try:
@@ -97,7 +113,8 @@ def spinner(label="Scanning"):
     finally:
         stop.set()
         t.join()
-        _spinner_active = False
+        with _spinner_lock:
+            _spinner_active = False
 
 
 def style_status(status: str) -> str:
