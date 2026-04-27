@@ -382,7 +382,8 @@ class PhantomUserScanner:
                 click.echo(output.yellow(f"No CloudTrail events found for {username}") + "\n")
                 return
 
-            click.echo(f"{output.bold(f'Found {len(events)} {"event" if len(events) == 1 else "events"}:')}\n")
+            event_word = "event" if len(events) == 1 else "events"
+            click.echo(f"{output.bold(f'Found {len(events)} {event_word}:')}\n")
 
             for event in events:
                 event_data = json.loads(event['CloudTrailEvent'])
@@ -574,82 +575,6 @@ class PhantomUserScanner:
         headers = ['Username', 'Created', 'Active API Keys', 'Access Keys', 'Status']
         lines.append(tabulate(table_data, headers=headers, tablefmt='grid'))
 
-        lines.extend(self._format_summary(phantoms, total, active, orphaned, at_risk))
-
-        return '\n'.join(lines)
-
-    def generate_verbose_table_report(self, phantoms: List[Dict]) -> str:
-        """Generate verbose report with detailed per-user information"""
-        if not phantoms:
-            return f"\n{output.green('No phantom users found in this account.')}\n"
-
-        total = len(phantoms)
-        active = len([u for u in phantoms if u['status'] == 'ACTIVE'])
-        orphaned = len([u for u in phantoms if u['status'] == 'ORPHANED'])
-        at_risk = len([u for u in phantoms if u['status'] == 'AT RISK'])
-
-        lines = []
-        lines.append(f"\n{output.bold(f'Found {total} phantom {"user" if total == 1 else "users"}')}\n")
-
-        for i, user in enumerate(phantoms):
-            status = output.style_status(user['status'])
-            lines.append(output.bold('─' * 60))
-            lines.append(f"  {output.bold(output.cyan(user['username']))}  [{status}]")
-            lines.append(output.bold('─' * 60))
-
-            # Identity
-            lines.append(f"  User ID:    {user['user_id']}")
-            lines.append(f"  ARN:        {user['arn']}")
-            created = user['created']
-            if hasattr(created, 'strftime'):
-                lines.append(f"  Created:    {created.strftime('%Y-%m-%d %H:%M:%S UTC')}")
-            else:
-                lines.append(f"  Created:    {created}")
-            lines.append(f"  Path:       {user.get('path', '/')}")
-
-            # Bedrock credentials
-            active_creds = user.get('active_bedrock_credentials', 0)
-            total_creds = user.get('bedrock_credentials', 0)
-            cred_color = output.green if active_creds == 0 else output.yellow
-            lines.append(f"\n  Bedrock API Keys: {cred_color(f'{active_creds} active')} / {total_creds} total")
-
-            for cred in user.get('credential_details', []):
-                cred_id = cred.get('ServiceSpecificCredentialId', 'N/A')
-                cred_status = cred.get('Status', 'N/A')
-                cred_created = cred.get('CreateDate', '')
-                if hasattr(cred_created, 'strftime'):
-                    cred_created = cred_created.strftime('%Y-%m-%d %H:%M:%S UTC')
-                lines.append(f"    • {cred_id}  status={cred_status}  created={cred_created}")
-
-            # Access keys
-            active_ak = user.get('active_access_keys', 0)
-            total_ak = user.get('access_keys', 0)
-            ak_color = output.green if active_ak == 0 else output.red
-            lines.append(f"\n  IAM Access Keys:  {ak_color(f'{active_ak} active')} / {total_ak} total")
-
-            for key_id in user.get('access_key_ids', []):
-                lines.append(f"    • {output.red(key_id)}")
-
-            # Policies
-            attached = user.get('attached_policies', [])
-            inline = user.get('inline_policies', [])
-            lines.append(f"\n  Policies: {user.get('total_policies', 0)} total")
-
-            if attached:
-                lines.append("    Managed:")
-                for p in attached:
-                    lines.append(f"      • {p}")
-            if inline:
-                lines.append("    Inline:")
-                for p in inline:
-                    lines.append(f"      • {p}")
-            if not attached and not inline:
-                lines.append("    (none)")
-
-            lines.append("")
-
-        # Summary
-        lines.append(output.bold('═' * 60))
         lines.extend(self._format_summary(phantoms, total, active, orphaned, at_risk))
 
         return '\n'.join(lines)
