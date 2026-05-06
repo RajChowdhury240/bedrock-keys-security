@@ -14,21 +14,9 @@ source venv/bin/activate
 pip install -e .
 ```
 
-## Branch protection rules (read first)
+## Branch protection rules
 
-The `main` branch is protected by a Repository ruleset. Your PR will be
-**blocked from merging** until all of these are satisfied:
-
-| Requirement | What it means for you |
-|---|---|
-| **Required signatures** | Every commit you push must be cryptographically signed (GPG or SSH). Unsigned commits will block the merge regardless of approvals. |
-| **2 approving reviews** | At least two reviewers must approve the latest pushed commit. |
-| **Code-owner review** | A member of `@beyondtrust/research` must be one of the approvers. |
-| **Linear history** | No merge commits in the PR branch. Rebase, don't merge from upstream. |
-| **Squash merge only** | The PR is squashed into a single commit on `main` at merge time. |
-| **CodeQL must pass** | The Python and Actions analysis workflows must complete with no high-severity alerts. |
-| **Stale review dismissal** | Force-pushing dismisses prior approvals; reviewers must re-approve the new HEAD. |
-| **Last-push approval required** | The latest commit must itself be approved (a stale approval on an earlier commit doesn't count). |
+`main` is protected by a [Repository ruleset](https://github.com/BeyondTrust/bedrock-keys-security/rules) requiring signed commits, two approving reviews (one from `@beyondtrust/research`), linear history, squash-only merge, and CodeQL passing. Force-pushing dismisses prior approvals.
 
 ## Set up commit signing
 
@@ -146,15 +134,15 @@ Body explains why this change is needed: the constraint, incident, or
 rationale that prompted it. Reference issues with #N. Wrap at 72 cols.
 ```
 
-- **Use English.** All commits, comments, and PR descriptions.
+- **Use English.** All commits, comments and PR descriptions.
 - **No `Co-authored-by` trailers** unless someone genuinely co-authored the
   work. The signature already establishes accountability.
-- **One logical change per commit.** Refactors, fixes, and new features go
+- **One logical change per commit.** Refactors, fixes and new features go
   in separate commits within the same PR if related.
 
 ## What we're looking for
 
-- Bug fixes (especially flag-scoping, JSON serialization, or boto3 edge cases)
+- Bug fixes (especially flag-scoping, JSON serialization or boto3 edge cases)
 - Detection content additions (Sigma, CloudTrail Lake, Athena, Splunk)
 - IaC improvements (additional Terraform inputs, AWS Organizations
   StackSet templates)
@@ -200,7 +188,7 @@ bks scan --help
 bks decode-key "ABSKQmVkcm9ja..."  # offline, safe to run anywhere
 
 # If you changed AWS-touching code, run against a sandbox account
-bks scan --profile sandbox --json | python3 -m json.tool > /dev/null
+bks scan --profile sandbox --json   # writes output/bks-scan-<account>-<UTC>.json
 
 # If you changed SCPs, validate JSON
 for f in scps/*.json; do python3 -m json.tool "$f" > /dev/null && echo "OK $f"; done

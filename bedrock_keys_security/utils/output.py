@@ -27,38 +27,55 @@ def _redraw_spinner():
         sys.stderr.flush()
 
 
+_quiet_mode = False
+
+
+def set_quiet(value: bool) -> None:
+    """Toggle --quiet: silences info/success/warning/high_risk. error always emits to stderr."""
+    global _quiet_mode
+    _quiet_mode = value
+
+
 def info(msg: str) -> None:
+    if _quiet_mode:
+        return
     with _spinner_lock:
         _clear_spinner_line()
-        click.echo(click.style(f"[INFO] {msg}", fg="cyan"))
+        click.echo(click.style(f"▸ {msg}", fg="cyan"))
         _redraw_spinner()
 
 
 def success(msg: str) -> None:
+    if _quiet_mode:
+        return
     with _spinner_lock:
         _clear_spinner_line()
-        click.echo(click.style(f"[SUCCESS] {msg}", fg="green"))
+        click.echo(click.style(f"✓ {msg}", fg="green"))
         _redraw_spinner()
 
 
 def warning(msg: str) -> None:
+    if _quiet_mode:
+        return
     with _spinner_lock:
         _clear_spinner_line()
-        click.echo(click.style(f"[WARNING] {msg}", fg="yellow"))
+        click.echo(click.style(f"⚠ {msg}", fg="yellow"))
         _redraw_spinner()
 
 
 def error(msg: str) -> None:
     with _spinner_lock:
         _clear_spinner_line()
-        click.echo(click.style(f"[ERROR] {msg}", fg="red"), err=True)
+        click.echo(click.style(f"✗ {msg}", fg="red"), err=True)
         _redraw_spinner()
 
 
 def high_risk(msg: str) -> None:
+    if _quiet_mode:
+        return
     with _spinner_lock:
         _clear_spinner_line()
-        click.echo(click.style(f"[HIGH RISK] {msg}", fg="red"))
+        click.echo(click.style(f"⚠ {msg}", fg="red", bold=True))
         _redraw_spinner()
 
 
@@ -84,11 +101,7 @@ def cyan(text: str) -> str:
 
 @contextmanager
 def spinner(label="Scanning"):
-    """Simple threaded spinner for indeterminate progress.
-
-    No-op when stderr is not a TTY (pipes, redirects, CI) to avoid
-    flooding output with ANSI escape sequences.
-    """
+    """Threaded spinner for indeterminate progress; no-op when stderr is not a TTY."""
     if not sys.stderr.isatty():
         yield
         return
@@ -139,9 +152,9 @@ def format_decode_table_output(result: Dict) -> str:
         return f"\n{red('[ERROR] ' + result['error'])}\n"
 
     lines = []
-    lines.append(f"\n{bold('\u2500' * 60)}")
+    lines.append(f"\n{bold('─' * 60)}")
     lines.append(f"{bold(cyan('  Bedrock API Key Analysis'))}")
-    lines.append(f"{bold('\u2500' * 60)}")
+    lines.append(f"{bold('─' * 60)}")
 
     key_type = result.get("type", "Unknown")
     type_label = green("Long-term (ABSK)") if key_type == "long-term" else yellow("Short-term")
@@ -161,7 +174,6 @@ def format_decode_table_output(result: Dict) -> str:
         lines.append(f"  Secret Preview:  {result.get('secret_preview', 'N/A')}")
         lines.append(f"  Secret Length:   {result.get('secret_length', 'N/A')} chars")
         lines.append(f"  Secret SHA-256:  {result.get('secret_sha256_16', 'N/A')} (first 16 hex)")
-        lines.append(f"  Format:          {result.get('format', 'N/A')}")
 
     elif key_type == "short-term":
         lines.append(f"  Hostname:        {cyan(result.get('hostname', 'N/A'))}")
@@ -177,13 +189,12 @@ def format_decode_table_output(result: Dict) -> str:
         lines.append(f"  Algorithm:       {result.get('algorithm', 'N/A')}")
         lines.append(f"  Signed Headers:  {result.get('signed_headers', 'N/A')}")
         lines.append(f"  Signature:       {result.get('signature_preview', 'N/A')}")
-        lines.append(f"  Format:          {result.get('format', 'N/A')}")
 
     if "security_notes" in result and result["security_notes"]:
         lines.append(f"\n  {bold(yellow('Security Notes:'))}")
         for note in result["security_notes"]:
-            lines.append(f"  {yellow('  \u2022 ' + note)}")
+            lines.append(f"  {yellow('  • ' + note)}")
 
-    lines.append(f"{bold('\u2500' * 60)}\n")
+    lines.append(f"{bold('─' * 60)}\n")
 
     return "\n".join(lines)
